@@ -1,13 +1,15 @@
 try:
     # for Python2
-    from Tkinter import Tk, messagebox, Label, Button, Entry, RIGHT, YES, X, DISABLED, StringVar, Frame, TOP, LEFT
+    from Tkinter import Tk, messagebox, Label, Button, Entry, FileDialog, RIGHT, YES, X, DISABLED, StringVar, Frame, TOP, LEFT
 except ImportError:
     # for Python3
-    from tkinter import Tk, messagebox, Label, Button, Entry, RIGHT, YES, X, DISABLED, StringVar, Frame, TOP, LEFT
+    from tkinter import Tk, messagebox, Label, Button, Entry, filedialog, RIGHT, YES, X, DISABLED, StringVar, Frame, TOP, LEFT
 
 import numpy as np
+import os
 from itertools import groupby
 from operator import itemgetter
+
 
 #Input Form
 fields = ('Vehicles Ignored', 'Saturation Flow Headway', 'Min Vehs per Measurement', 'Minimum Valid Cycles')
@@ -29,10 +31,16 @@ class SatFlowsCalc:
         self.master = master
         master.title("Saturation Flows Calculator")
 
-        lbl = Label(master, text='Place the .dis files in the Input_DIS_Files folder')
-        lbl.pack()
+        vcmd    = master.register(self.validate) # we have to wrap the command
+        vcmd_fp = master.register(self.validate_inputFolder) # we have to wrap the command
 
-        vcmd = master.register(self.validate) # we have to wrap the command
+
+        self.fp_dis = StringVar()
+        e = Entry(master, textvariable=self.fp_dis,validate="key", validatecommand=(vcmd_fp,'%P'))
+        b = Button(master, text="Browse",
+                   command=lambda:self.fp_dis.set(filedialog.askdirectory()))
+        e.pack()
+        b.pack()
 
         self.vehsIgnored = StringVar()
         self.satFlowHead = StringVar()
@@ -57,6 +65,14 @@ class SatFlowsCalc:
                                  state=DISABLED, command=lambda: self.Main(self.params))
         self.run_button.pack(padx=5, pady=5,expand=YES, fill=X)
 
+
+    def validate_inputFolder(self, fp):
+        print('in')
+        if os.listdir(fp):
+            return False
+        else:
+            return True
+
     def validate(self, new_text):
         if not new_text: # the field is being cleared
             self.entered_number = 0
@@ -68,14 +84,15 @@ class SatFlowsCalc:
             return False
 
     def Main(self,params):
+        #Close the window
         self.master.withdraw()
         vehsIgnored = self.vehsIgnored.get()
         satFlowHead = self.satFlowHead.get()
         minValidCycles = self.minValidCycles.get()
         minVehsPerMeas = self.minVehsPerMeas.get()
 
-        csv_output_fp = r'Output\Output_SatFlows.csv'
-        dis_input_fp = 'Input_DIS_files'
+        csv_output_fp = r'Output_SatFlows.csv'
+        dis_input_fp = self.fp_dis.get()
         #--------------------------------------------------------------------------------------------------------------#
         satFlow_data = self.GetDisData(dis_input_fp)
 
